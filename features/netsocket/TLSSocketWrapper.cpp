@@ -53,6 +53,7 @@ TLSSocketWrapper::TLSSocketWrapper(Socket *transport, const char *hostname, cont
 TLSSocketWrapper::~TLSSocketWrapper() {
     if (_transport) {
         close();
+        _transport = NULL;
     }
     mbedtls_entropy_free(&_entropy);
     mbedtls_ctr_drbg_free(&_ctr_drbg);
@@ -488,8 +489,6 @@ nsapi_error_t TLSSocketWrapper::close()
             ret = ret2;
         }
     }
-
-    _transport = NULL;
 
     return ret;
 }
