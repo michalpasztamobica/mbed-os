@@ -36,7 +36,8 @@
     !defined(TARGET_MTB_USI_WM_BN_BM_22)    && \
     !defined(TARGET_MTB_MXCHIP_EMW3166)     && \
     !defined(TARGET_MTB_UBLOX_ODIN_W2)      && \
-    !defined(TARGET_UNO_91H)
+    !defined(TARGET_UNO_91H)                && \
+    !defined(TARGET_K64F)
 #error [NOT_SUPPORTED] Wifi tests are not valid for the target
 #endif
 #endif
