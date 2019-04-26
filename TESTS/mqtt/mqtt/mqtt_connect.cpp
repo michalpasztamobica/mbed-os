@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
+#include <MQTTNetwork.h>
 #include "mqtt_tests.h"
 #include "unity/unity.h"
 
-#include <MQTTNetwork.h>
 #include <MQTTClient.h>
 #include <MQTTmbed.h> // Countdown
 
@@ -36,7 +36,7 @@ void messageArrived(MQTT::MessageData& md)
 void MQTT_CONNECT()
 {
     float version = 0.6;
-    char* topic = "mbed-sample";
+    char* topic = "test";
 
     NetworkInterface *net = NetworkInterface::get_default_instance();
     nsapi_error_t err = net->connect();
@@ -47,7 +47,8 @@ void MQTT_CONNECT()
 
     MQTT::Client<MQTTNetwork, Countdown> client(mqttNet);
 
-    const char* hostname = "iot.eclipse.org";
+//    const char* hostname = "iot.eclipse.org";
+    const char* hostname = "192.168.8.76";
     int port = 1883;
     printf("Connecting to %s:%d\r\n", hostname, port);
     int rc = mqttNet.connect(hostname, port);
