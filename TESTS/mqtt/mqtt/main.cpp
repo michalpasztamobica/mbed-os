@@ -23,6 +23,8 @@ using namespace utest::v1;
 
 Case cases[] = {
     Case("MQTT_CONNECT", MQTT_CONNECT),
+    Case("MQTT_CONNECT_NEW", MQTT_CONNECT_NEW),
+    Case("MQTT_CONNECT_TEMPLATES", MQTT_CONNECT_TEMPLATES),
 };
 
 // Test setup

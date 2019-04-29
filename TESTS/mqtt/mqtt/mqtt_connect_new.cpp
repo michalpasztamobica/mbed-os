@@ -19,23 +19,17 @@
 #include "mqtt_tests.h"
 #include "unity/unity.h"
 
-#include <MQTTClient.h>
+#include <MQTTClientNew.h>
 #include <MQTTmbed.h> // Countdown
 
-int arrivedcount = 0;
+extern int arrivedcount;
 
+extern void messageArrived(MQTT::MessageData& md);
 
-void messageArrived(MQTT::MessageData& md)
+void MQTT_CONNECT_NEW()
 {
-    MQTT::Message &message = md.message;
-    printf("Message arrived: qos %d, retained %d, dup %d, packetid %d\r\n", message.qos, message.retained, message.dup, message.id);
-    printf("Payload %.*s\r\n", message.payloadlen, (char*)message.payload);
-    ++arrivedcount;
-}
-
-void MQTT_CONNECT()
-{
-    float version = 0.6;
+    arrivedcount = 0;
+    float version = 0.7;
     char* topic = "test";
 
     NetworkInterface *net = NetworkInterface::get_default_instance();
@@ -43,18 +37,18 @@ void MQTT_CONNECT()
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, err);
     printf("MBED: TCPClient IP address is '%s'\n", net->get_ip_address());
 
-    MQTTNetwork mqttNet(net);
-
-    MQTT::Client<MQTTNetwork, Countdown> client(mqttNet);
-
-//    const char* hostname = "iot.eclipse.org";
+    //    const char* hostname = "iot.eclipse.org";
     const char* hostname = "192.168.8.76";
     int port = 1883;
+    SocketAddress sockAddr(hostname, port);
+    TCPSocket socket;
+    socket.open(net);
+    socket.connect(sockAddr);
     printf("Connecting to %s:%d\r\n", hostname, port);
-    int rc = mqttNet.connect(hostname, port);
-    if (rc != 0)
-        printf("rc from TCP connect is %d\r\n", rc);
 
+    MQTTClient client(&socket);
+
+    int rc;
     MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
     data.MQTTVersion = 3;
     data.clientID.cstring = "mbed-sample";
@@ -102,8 +96,7 @@ void MQTT_CONNECT()
     if ((rc = client.disconnect()) != 0)
         printf("rc from disconnect was %d\r\n", rc);
 
-    mqttNet.disconnect();
-
+    socket.close();
     net->disconnect();
 
     printf("Version %.2f: finish %d msgs\r\n", version, arrivedcount);

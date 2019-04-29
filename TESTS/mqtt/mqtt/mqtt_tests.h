@@ -24,5 +24,7 @@
  * Test cases
  */
 void MQTT_CONNECT();
+void MQTT_CONNECT_NEW();
+void MQTT_CONNECT_TEMPLATES();
 
 #endif //MQTT_TESTS_H
