@@ -39,8 +39,19 @@ public:
         return socket->send(buffer, len);
     }
 
-    int connect(const char* hostname, int port) {
-        socket->open(network);
+    int connect(const char* hostname, int port, const char *ssl_ca_pem = NULL,
+            const char *ssl_cli_pem = NULL, const char *ssl_pk_pem = NULL) {
+        int ret = socket->open(network);
+        if(ret < 0)
+            return ret;
+        ret = socket->set_root_ca_cert(ssl_ca_pem);
+        if(ret < 0)
+            return ret;
+        if (ssl_cli_pem != NULL && ssl_pk_pem != NULL) {
+            ret = socket->set_client_cert_key(ssl_cli_pem, ssl_pk_pem);
+            if(ret < 0)
+            return ret;
+        }
         return socket->connect(hostname, port);
     }
 
