@@ -20,6 +20,8 @@
 
 #include <MQTTClient.h>
 
+#include <MQTTSNClient.h>
+
 extern const char* hostname;
 extern const char* SSL_CA_PEM;
 extern const char* SSL_CLIENT_CERT_PEM;
@@ -34,16 +36,18 @@ void MQTT_CONNECT_NEW();
 void MQTT_CONNECT_NEW_TLS();
 void MQTT_CONNECT_TEMPLATES();
 void MQTT_CONNECT_TEMPLATES_TLS();
+void MQTT_CONNECT_UDP();
 
 extern int arrivedcount;
 void messageArrived(MQTT::MessageData& md);
+void messageArrivedSN(MQTTSN::MessageData& md);
 
-template <class Client> int send_messages(Client &client, const char *clientID) {
+template <class Client> int send_messages(Client &client, char *clientID) {
     char* topic = "test";
     int rc;
     MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
     data.MQTTVersion = 3;
-    data.clientID.cstring = "MQTT_CONNECT_TLS";
+    data.clientID.cstring = (char*)clientID;
     data.username.cstring = "testuser";
     data.password.cstring = "testpassword";
     if ((rc = client.connect(data)) != 0)
@@ -77,6 +81,60 @@ template <class Client> int send_messages(Client &client, const char *clientID) 
 //    // QoS 2
 //    sprintf(buf, "QoS 2 %s\n", clientID);
 //    message.qos = MQTT::QOS2;
+//    message.payloadlen = strlen(buf)+1;
+//    rc = client.publish(topic, message);
+//    while (arrivedcount < 3)
+//        client.yield(100);
+
+    if ((rc = client.unsubscribe(topic)) != 0)
+        printf("rc from unsubscribe was %d\r\n", rc);
+
+    if ((rc = client.disconnect()) != 0)
+        printf("rc from disconnect was %d\r\n", rc);
+
+    return rc;
+}
+
+template <class Client> int send_messages_sn(Client &client, char *clientID) {
+    char topicName[5] = "test";
+    MQTTSN_topicid topic;
+    topic.type = MQTTSN_TOPIC_TYPE_NORMAL;
+    topic.data.long_.len = strlen(topicName);
+    topic.data.long_.name = const_cast<char*>(topicName);
+    int rc;
+    MQTTSNPacket_connectData data = MQTTSNPacket_connectData_initializer;
+    data.clientID.cstring = clientID;
+    if ((rc = client.connect(data)) != 0)
+        printf("rc from MQTT connect is %d\r\n", rc);
+
+    if ((rc = client.subscribe(topic, MQTTSN::QOS2, messageArrivedSN)) != 0)
+        printf("rc from MQTT subscribe is %d\r\n", rc);
+
+    MQTTSN::Message message;
+
+    // QoS 0
+    char buf[100];
+    sprintf(buf, "QoS 0 %s\n", clientID);
+    message.qos = MQTTSN::QOS0;
+    message.retained = false;
+    message.dup = false;
+    message.payload = (void*)buf;
+    message.payloadlen = strlen(buf)+1;
+    rc = client.publish(topic, message);
+    while (arrivedcount < 1)
+        client.yield(100);
+
+    // QoS 1
+    sprintf(buf, "QoS 1 %s\n", clientID);
+    message.qos = MQTTSN::QOS1;
+    message.payloadlen = strlen(buf)+1;
+    rc = client.publish(topic, message);
+    while (arrivedcount < 2)
+        client.yield(100);
+
+//    // QoS 2
+//    sprintf(buf, "QoS 2 %s\n", clientID);
+//    message.qos = MQTTSN::QOS2;
 //    message.payloadlen = strlen(buf)+1;
 //    rc = client.publish(topic, message);
 //    while (arrivedcount < 3)

@@ -33,7 +33,7 @@ extern "C" {
   #define DLLExport  
 #endif
 
-enum errors
+enum errorsMqtt
 {
 	MQTTPACKET_BUFFER_TOO_SHORT = -2,
 	MQTTPACKET_READ_ERROR = -1,
@@ -109,7 +109,7 @@ char readChar(unsigned char** pptr);
 void writeChar(unsigned char** pptr, char c);
 void writeInt(unsigned char** pptr, int anInt);
 int readMQTTLenString(MQTTString* mqttstring, unsigned char** pptr, unsigned char* enddata);
-void writeCString(unsigned char** pptr, const char* string);
+void writeCString(unsigned char** pptr, char* string);
 void writeMQTTString(unsigned char** pptr, MQTTString mqttstring);
 
 DLLExport int MQTTPacket_read(unsigned char* buf, int buflen, int (*getfn)(unsigned char*, int));
