@@ -32,42 +32,9 @@
 #include <MQTTSNClient.h>
 #include <MQTTmbed.h> // Countdown
 
-typedef enum MQTTSocketType_t {
-    MQTT_SOCKET_TCP,
-    MQTT_SOCKET_TLS,
-    MQTT_SOCKET_UDP,
-    MQTT_SOCKET_DTLS,
-} MQTTSocketType;
-
-class MQTTNetworkTCP {
+class MQTTNetworkNew {
 public:
-    MQTTNetworkTCP(TCPSocket* _socket) : socket(_socket) {}
-
-    int read(unsigned char* buffer, int len, int timeout) {
-        return socket->recv(buffer, len);
-    }
-
-    int write(unsigned char* buffer, int len, int timeout) {
-        printf("write3\n");
-        return socket->send(buffer, len);
-    }
-
-    int connect(const char* hostname, int port) {
-        SocketAddress sockAddr(hostname, port);
-        return socket->connect(sockAddr);
-    }
-
-    int disconnect() {
-        return socket->close();
-    }
-
-private:
-    TCPSocket* socket;
-};
-
-class MQTTNetworkTLSNew { // Avoid name clash with MQTTNetworkTLS
-public:
-    MQTTNetworkTLSNew(TLSSocket* _socket) : socket(_socket) {}
+    MQTTNetworkNew(Socket* _socket) : socket(_socket) {}
 
     int read(unsigned char* buffer, int len, int timeout) {
         return socket->recv(buffer, len);
@@ -87,65 +54,7 @@ public:
     }
 
 private:
-    TLSSocket* socket;
-};
-
-class MQTTNetworkUDP {
-public:
-    MQTTNetworkUDP(UDPSocket* _socket) : socket(_socket) {}
-
-    ~MQTTNetworkUDP() {
-        delete socket;
-    }
-
-    int read(unsigned char* buffer, int len, int timeout) {
-        return socket->recv(buffer, len);
-    }
-
-    int write(unsigned char* buffer, int len, int timeout) {
-        return socket->send(buffer, len);
-    }
-
-    int connect(const char* hostname, int port) {
-        SocketAddress sockAddr(hostname, port);
-        return socket->connect(sockAddr);
-    }
-
-    int disconnect() {
-        return socket->close();
-    }
-
-private:
-    UDPSocket* socket;
-};
-
-class MQTTNetworkDTLS {
-public:
-    MQTTNetworkDTLS(DTLSSocket* _socket) : socket(_socket) {}
-
-    ~MQTTNetworkDTLS() {
-        delete socket;
-    }
-
-    int read(unsigned char* buffer, int len, int timeout) {
-        return socket->recv(buffer, len);
-    }
-
-    int write(unsigned char* buffer, int len, int timeout) {
-        return socket->send(buffer, len);
-    }
-
-    int connect(const char* hostname, int port) {
-        SocketAddress sockAddr(hostname, port);
-        return socket->connect(sockAddr);
-    }
-
-    int disconnect() {
-        return socket->close();
-    }
-
-private:
-    DTLSSocket* socket;
+    Socket* socket;
 };
 
 class MQTTClient {
@@ -154,214 +63,127 @@ public:
     typedef void (*messageHandlerSN)(MQTTSN::MessageData&);
 
     // Perhaps write macro generators for these functions?
-    MQTTClient(TCPSocket* socket) {
-        init();
-        socketType = MQTT_SOCKET_TCP;
-        tcp = socket;
-        mqttNetTCP = new MQTTNetworkTCP(tcp);
-        clientTCP = new MQTT::Client<MQTTNetworkTCP, Countdown>(*mqttNetTCP);
+    MQTTClient(TCPSocket* _socket) {
+        init(_socket);
+        mqttNet = new MQTTNetworkNew(socket);
+        client = new MQTT::Client<MQTTNetworkNew, Countdown>(*mqttNet);
     };
 
-    MQTTClient(TLSSocket* socket) {
-        init();
-        socketType = MQTT_SOCKET_TLS;
-        tls = socket;
-        mqttNetTLS = new MQTTNetworkTLSNew(tls);
-        clientTLS = new MQTT::Client<MQTTNetworkTLSNew, Countdown>(*mqttNetTLS);
+    MQTTClient(TLSSocket* _socket) {
+        init(_socket);
+        mqttNet = new MQTTNetworkNew(socket);
+        client = new MQTT::Client<MQTTNetworkNew, Countdown>(*mqttNet);
     };
 
-    MQTTClient(UDPSocket* socket) {
-        init();
-        socketType = MQTT_SOCKET_UDP;
-        udp = socket;
-        mqttNetUDP = new MQTTNetworkUDP(udp);
-        clientUDP = new MQTTSN::Client<MQTTNetworkUDP, Countdown>(*mqttNetUDP);
+    MQTTClient(UDPSocket* _socket) {
+        init(_socket);
+        mqttNet = new MQTTNetworkNew(socket);
+        clientSN = new MQTTSN::Client<MQTTNetworkNew, Countdown>(*mqttNet);
     };
 
-     MQTTClient(DTLSSocket* socket) {
-        init();
-        socketType = MQTT_SOCKET_DTLS;
-        dtls = socket;
-        mqttNetDTLS = new MQTTNetworkDTLS(dtls);
-        clientDTLS = new MQTTSN::Client<MQTTNetworkDTLS, Countdown>(*mqttNetDTLS);
+     MQTTClient(DTLSSocket* _socket) {
+        init(_socket);
+        mqttNet = new MQTTNetworkNew(socket);
+        clientSN = new MQTTSN::Client<MQTTNetworkNew, Countdown>(*mqttNet);
     };
 
     int connect(MQTTPacket_connectData& options) {
-        switch (socketType) {
-        case MQTT_SOCKET_TCP:
-            return clientTCP->connect(options);
-            break;
-        case MQTT_SOCKET_TLS:
-            return clientTLS->connect(options);
-            break;
-        default:
-            return -1;
+        if (client != NULL) {
+            return client->connect(options);
+        } else {
+            return NSAPI_ERROR_NO_CONNECTION;
         }
     }
 
     int connect(MQTTSNPacket_connectData& options) {
-        switch (socketType) {
-        case MQTT_SOCKET_UDP:
-            return clientUDP->connect(options);
-            break;
-        case MQTT_SOCKET_DTLS:
-            return clientDTLS->connect(options);
-            break;
-        default:
-            return -1;
+        if (clientSN != NULL) {
+            return clientSN->connect(options);
+        } else {
+            return NSAPI_ERROR_NO_CONNECTION;
         }
     }
 
     int publish(const char* topicName, MQTT::Message& message) {
-        switch (socketType) {
-        case MQTT_SOCKET_TCP:
-            return clientTCP->publish(topicName, message);
-            break;
-        case MQTT_SOCKET_TLS:
-            return clientTLS->publish(topicName, message);
-            break;
-        default:
-            return -1;
+        if (client != NULL) {
+            return client->publish(topicName, message);
+        } else {
+            return NSAPI_ERROR_NO_CONNECTION;
         }
     }
 
     int publish(MQTTSN_topicid& topicName, MQTTSN::Message& message) {
-        switch (socketType) {
-        case MQTT_SOCKET_UDP:
-            return clientUDP->publish(topicName, message);
-            break;
-        case MQTT_SOCKET_DTLS:
-            return clientDTLS->publish(topicName, message);
-            break;
-        default:
-            return -1;
+        if (clientSN != NULL) {
+            return clientSN->publish(topicName, message);
+        } else {
+            return NSAPI_ERROR_NO_CONNECTION;
         }
     }
 
     int subscribe(const char* topicFilter, enum MQTT::QoS qos, messageHandler mh) {
-        switch (socketType) {
-        case MQTT_SOCKET_TCP:
-            return clientTCP->subscribe(topicFilter, qos, mh);
-            break;
-        case MQTT_SOCKET_TLS:
-            return clientTLS->subscribe(topicFilter, qos, mh);
-            break;
-        default:
-            return -1;
+        if (client != NULL) {
+            return client->subscribe(topicFilter, qos, mh);
+        } else {
+            return NSAPI_ERROR_NO_CONNECTION;
         }
     }
 
     int subscribe(MQTTSN_topicid& topicFilter, enum MQTTSN::QoS qos, messageHandlerSN mh) {
-        switch (socketType) {
-        case MQTT_SOCKET_UDP:
-            return clientUDP->subscribe(topicFilter, qos, mh);
-            break;
-        case MQTT_SOCKET_DTLS:
-            return clientDTLS->subscribe(topicFilter, qos, mh);
-            break;
-        default:
-            return -1;
+        if (clientSN != NULL) {
+            return clientSN->subscribe(topicFilter, qos, mh);
+        } else {
+            return NSAPI_ERROR_NO_CONNECTION;
         }
     }
 
-     int unsubscribe(const char* topicFilter) {
-        switch (socketType) {
-        case MQTT_SOCKET_TCP:
-            return clientTCP->unsubscribe(topicFilter);
-            break;
-        case MQTT_SOCKET_TLS:
-            return clientTLS->unsubscribe(topicFilter);
-            break;
-        default:
-            return -1;
+    int unsubscribe(const char* topicFilter) {
+        if (client != NULL) {
+            return client->unsubscribe(topicFilter);
+        } else {
+            return NSAPI_ERROR_NO_CONNECTION;
         }
     }
 
     int unsubscribe(MQTTSN_topicid& topicFilter) {
-        switch (socketType) {
-        case MQTT_SOCKET_UDP:
-            return clientUDP->unsubscribe(topicFilter);
-            break;
-        case MQTT_SOCKET_DTLS:
-            return clientDTLS->unsubscribe(topicFilter);
-            break;
-        default:
-            return -1;
+        if (clientSN != NULL) {
+            return clientSN->unsubscribe(topicFilter);
+        } else {
+            return NSAPI_ERROR_NO_CONNECTION;
         }
     }
 
     int yield(unsigned long timeout_ms = 1000L) {
-        switch (socketType) {
-        case MQTT_SOCKET_TCP:
-            return clientTCP->yield(timeout_ms);
-            break;
-        case MQTT_SOCKET_TLS:
-            return clientTLS->yield(timeout_ms);
-            break;
-        case MQTT_SOCKET_UDP:
-            return clientUDP->yield(timeout_ms);
-            break;
-        case MQTT_SOCKET_DTLS:
-            return clientDTLS->yield(timeout_ms);
-            break;
-        default:
-            return -1;
+        if (client != NULL) {
+            return client->yield(timeout_ms);
+        } else if (clientSN != NULL) {
+            return clientSN->yield(timeout_ms);
+        } else {
+            return NSAPI_ERROR_NO_CONNECTION;
         }
     }
 
     int disconnect() {
-        switch (socketType) {
-        case MQTT_SOCKET_TCP:
-            return clientTCP->disconnect();
-            break;
-        case MQTT_SOCKET_TLS:
-            return clientTLS->disconnect();
-            break;
-        case MQTT_SOCKET_UDP:
-            return clientUDP->disconnect();
-            break;
-        case MQTT_SOCKET_DTLS:
-            return clientDTLS->disconnect();
-            break;
-        default:
-            return -1;
+        if (client != NULL) {
+            return client->disconnect();
+        } else if (clientSN != NULL) {
+            return clientSN->disconnect(0);
+        } else {
+            return NSAPI_ERROR_NO_CONNECTION;
         }
     }
-private:
 
-    void init(void) {
-        tcp = NULL;
-        tls = NULL;
-        udp = NULL;
-        dtls = NULL;
-
-        mqttNetTCP = NULL;
-        mqttNetTLS = NULL;
-        mqttNetUDP = NULL;
-        mqttNetDTLS = NULL;
-
-        clientTCP = NULL;
-        clientTLS = NULL;
-        clientUDP = NULL;
-        clientDTLS = NULL;
+    void init(Socket* sock) {
+        socket = sock;
+        client = NULL;
+        clientSN = NULL;
     }
 
-    MQTTSocketType socketType;
-
-    TCPSocket* tcp;
-    TLSSocket* tls;
-    UDPSocket* udp;
-    DTLSSocket* dtls;
-    MQTTNetworkTCP* mqttNetTCP;
-    MQTTNetworkTLSNew* mqttNetTLS;
-    MQTTNetworkUDP* mqttNetUDP;
-    MQTTNetworkDTLS* mqttNetDTLS;
+private:
+    Socket* socket;
+    MQTTNetworkNew* mqttNet;
     NetworkInterface *net;
 
-    MQTT::Client<MQTTNetworkTCP, Countdown>* clientTCP;
-    MQTT::Client<MQTTNetworkTLSNew, Countdown>* clientTLS;
-    MQTTSN::Client<MQTTNetworkUDP, Countdown>* clientUDP;
-    MQTTSN::Client<MQTTNetworkDTLS, Countdown>* clientDTLS;
+    MQTT::Client<MQTTNetworkNew, Countdown>* client;
+    MQTTSN::Client<MQTTNetworkNew, Countdown>* clientSN;
 };
 
 #endif // MQTT_CLIENT_NEW_H
