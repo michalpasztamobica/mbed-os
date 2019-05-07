@@ -37,12 +37,16 @@ void MQTT_CONNECT_NEW_TLS();
 void MQTT_CONNECT_TEMPLATES();
 void MQTT_CONNECT_TEMPLATES_TLS();
 void MQTT_CONNECT_UDP();
+void MQTT_CONNECT_NEW_UDP();
+void MQTT_CONNECT_TEMPLATES_UDP();
 
 extern int arrivedcount;
+extern int arrivedcountSN;
 void messageArrived(MQTT::MessageData& md);
 void messageArrivedSN(MQTTSN::MessageData& md);
 
 template <class Client> int send_messages(Client &client, char *clientID) {
+    arrivedcount = 0;
     char* topic = "test";
     int rc;
     MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
@@ -67,9 +71,13 @@ template <class Client> int send_messages(Client &client, char *clientID) {
     message.payload = (void*)buf;
     message.payloadlen = strlen(buf)+1;
     rc = client.publish(topic, message);
-    while (arrivedcount < 1)
+    printf("arrived: %d\n", arrivedcount);
+    while (arrivedcount < 1) {
         client.yield(100);
+        printf("arrived: %d\n", arrivedcount);
+    }
 
+    printf("Moving to 1\n");
     // QoS 1
     sprintf(buf, "QoS 1 %s\n", clientID);
     message.qos = MQTT::QOS1;
@@ -96,6 +104,7 @@ template <class Client> int send_messages(Client &client, char *clientID) {
 }
 
 template <class Client> int send_messages_sn(Client &client, char *clientID) {
+    arrivedcountSN = 0;
     char topicName[5] = "test";
     MQTTSN_topicid topic;
     topic.type = MQTTSN_TOPIC_TYPE_NORMAL;
@@ -110,6 +119,7 @@ template <class Client> int send_messages_sn(Client &client, char *clientID) {
     if ((rc = client.subscribe(topic, MQTTSN::QOS2, messageArrivedSN)) != 0)
         printf("rc from MQTT subscribe is %d\r\n", rc);
 
+    printf("Topic id: %d\n", topic.data.id);
     MQTTSN::Message message;
 
     // QoS 0
@@ -121,23 +131,25 @@ template <class Client> int send_messages_sn(Client &client, char *clientID) {
     message.payload = (void*)buf;
     message.payloadlen = strlen(buf)+1;
     rc = client.publish(topic, message);
-    while (arrivedcount < 1)
-        client.yield(100);
+
+//    TODO: get the gateway/client configuration right to have the subscribe working.
+//    while (arrivedcountSN < 1)
+//        client.yield(100);
 
     // QoS 1
     sprintf(buf, "QoS 1 %s\n", clientID);
     message.qos = MQTTSN::QOS1;
     message.payloadlen = strlen(buf)+1;
     rc = client.publish(topic, message);
-    while (arrivedcount < 2)
-        client.yield(100);
+//    while (arrivedcountSN < 2)
+//        client.yield(100);
 
 //    // QoS 2
 //    sprintf(buf, "QoS 2 %s\n", clientID);
 //    message.qos = MQTTSN::QOS2;
 //    message.payloadlen = strlen(buf)+1;
 //    rc = client.publish(topic, message);
-//    while (arrivedcount < 3)
+//    while (arrivedcountSN < 3)
 //        client.yield(100);
 
     if ((rc = client.unsubscribe(topic)) != 0)

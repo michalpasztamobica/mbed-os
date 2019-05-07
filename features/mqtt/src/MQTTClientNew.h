@@ -26,8 +26,10 @@
 #include "unity/unity.h"
 
 #include "FP.h"
-#include "MQTTPacket.h"
+#include <MQTTPacket.h>
 #include <MQTTClient.h>
+#include <MQTTSNPacket.h>
+#include <MQTTSNClient.h>
 #include <MQTTmbed.h> // Countdown
 
 typedef enum MQTTSocketType_t {
@@ -149,6 +151,7 @@ private:
 class MQTTClient {
 public:
     typedef void (*messageHandler)(MQTT::MessageData&);
+    typedef void (*messageHandlerSN)(MQTTSN::MessageData&);
 
     // Perhaps write macro generators for these functions?
     MQTTClient(TCPSocket* socket) {
@@ -172,19 +175,18 @@ public:
         socketType = MQTT_SOCKET_UDP;
         udp = socket;
         mqttNetUDP = new MQTTNetworkUDP(udp);
-        clientUDP = new MQTT::Client<MQTTNetworkUDP, Countdown>(*mqttNetUDP);
+        clientUDP = new MQTTSN::Client<MQTTNetworkUDP, Countdown>(*mqttNetUDP);
     };
 
      MQTTClient(DTLSSocket* socket) {
-         init();
+        init();
         socketType = MQTT_SOCKET_DTLS;
         dtls = socket;
         mqttNetDTLS = new MQTTNetworkDTLS(dtls);
-        clientDTLS = new MQTT::Client<MQTTNetworkDTLS, Countdown>(*mqttNetDTLS);
+        clientDTLS = new MQTTSN::Client<MQTTNetworkDTLS, Countdown>(*mqttNetDTLS);
     };
 
     int connect(MQTTPacket_connectData& options) {
-        printf("Enter connect %d\n", socketType);
         switch (socketType) {
         case MQTT_SOCKET_TCP:
             return clientTCP->connect(options);
@@ -192,6 +194,13 @@ public:
         case MQTT_SOCKET_TLS:
             return clientTLS->connect(options);
             break;
+        default:
+            return -1;
+        }
+    }
+
+    int connect(MQTTSNPacket_connectData& options) {
+        switch (socketType) {
         case MQTT_SOCKET_UDP:
             return clientUDP->connect(options);
             break;
@@ -201,11 +210,9 @@ public:
         default:
             return -1;
         }
-        printf("Exit connect\n");
     }
 
     int publish(const char* topicName, MQTT::Message& message) {
-        printf("Enter publish\n");
         switch (socketType) {
         case MQTT_SOCKET_TCP:
             return clientTCP->publish(topicName, message);
@@ -213,6 +220,13 @@ public:
         case MQTT_SOCKET_TLS:
             return clientTLS->publish(topicName, message);
             break;
+        default:
+            return -1;
+        }
+    }
+
+    int publish(MQTTSN_topicid& topicName, MQTTSN::Message& message) {
+        switch (socketType) {
         case MQTT_SOCKET_UDP:
             return clientUDP->publish(topicName, message);
             break;
@@ -222,11 +236,9 @@ public:
         default:
             return -1;
         }
-        printf("Exit publish\n");
     }
 
     int subscribe(const char* topicFilter, enum MQTT::QoS qos, messageHandler mh) {
-        printf("Enter publish\n");
         switch (socketType) {
         case MQTT_SOCKET_TCP:
             return clientTCP->subscribe(topicFilter, qos, mh);
@@ -234,6 +246,13 @@ public:
         case MQTT_SOCKET_TLS:
             return clientTLS->subscribe(topicFilter, qos, mh);
             break;
+        default:
+            return -1;
+        }
+    }
+
+    int subscribe(MQTTSN_topicid& topicFilter, enum MQTTSN::QoS qos, messageHandlerSN mh) {
+        switch (socketType) {
         case MQTT_SOCKET_UDP:
             return clientUDP->subscribe(topicFilter, qos, mh);
             break;
@@ -243,7 +262,6 @@ public:
         default:
             return -1;
         }
-        printf("Exit subscribe\n");
     }
 
      int unsubscribe(const char* topicFilter) {
@@ -254,6 +272,13 @@ public:
         case MQTT_SOCKET_TLS:
             return clientTLS->unsubscribe(topicFilter);
             break;
+        default:
+            return -1;
+        }
+    }
+
+    int unsubscribe(MQTTSN_topicid& topicFilter) {
+        switch (socketType) {
         case MQTT_SOCKET_UDP:
             return clientUDP->unsubscribe(topicFilter);
             break;
@@ -335,8 +360,8 @@ private:
 
     MQTT::Client<MQTTNetworkTCP, Countdown>* clientTCP;
     MQTT::Client<MQTTNetworkTLSNew, Countdown>* clientTLS;
-    MQTT::Client<MQTTNetworkUDP, Countdown>* clientUDP;
-    MQTT::Client<MQTTNetworkDTLS, Countdown>* clientDTLS;
+    MQTTSN::Client<MQTTNetworkUDP, Countdown>* clientUDP;
+    MQTTSN::Client<MQTTNetworkDTLS, Countdown>* clientDTLS;
 };
 
 #endif // MQTT_CLIENT_NEW_H

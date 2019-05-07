@@ -22,21 +22,27 @@
 
 class MQTTSNNetworkUDP {
 public:
-    MQTTSNNetworkUDP(UDPSocket &_socket) :
-        socket(_socket)
-    {}
+    MQTTSNNetworkUDP(NetworkInterface *net) :
+        network(net) {
+        socket = new UDPSocket();
+    }
+
+    ~MQTTSNNetworkUDP() {
+        delete socket;
+    }
 
     int read(unsigned char* buffer, int len, int timeout) {
-        return socket.recv(buffer, len);
+        return socket->recv(buffer, len);
     }
 
     int write(unsigned char* buffer, int len, int timeout) {
-        return socket.send(buffer, len);
+        return socket->send(buffer, len);
     }
 
     int connect(const char* hostname, int port) {
+        socket->open(network);
         SocketAddress addr(hostname, port);
-        return socket.connect(addr);
+        return socket->connect(addr);
     }
 
     int disconnect(void) {
@@ -44,7 +50,8 @@ public:
     }
 
 private:
-    UDPSocket socket;
+    NetworkInterface* network;
+    UDPSocket* socket;
 };
 
 #endif // _MQTTNETWORKUDP_H_

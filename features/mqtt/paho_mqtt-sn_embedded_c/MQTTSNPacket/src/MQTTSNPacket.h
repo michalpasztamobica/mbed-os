@@ -139,7 +139,7 @@ char readChar(unsigned char** pptr);
 void writeChar(unsigned char** pptr, char c);
 void writeInt(unsigned char** pptr, int anInt);
 int readMQTTSNString(MQTTSNString* mqttstring, unsigned char** pptr, unsigned char* enddata);
-void writeCString(unsigned char** pptr, char* string);
+void writeCString(unsigned char** pptr, const char* string);
 void writeMQTTSNString(unsigned char** pptr, MQTTSNString mqttstring);
 
 int MQTTSNPacket_read(unsigned char* buf, int buflen, int (*getfn)(unsigned char*, int));

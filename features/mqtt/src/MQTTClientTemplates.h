@@ -100,4 +100,45 @@ private:
     MQTT::Client<MQTTNetworkTemplate<SocketType>, Countdown>* client;
 };
 
+template <class SocketType> class MQTTSNClient {
+public:
+    typedef void (*messageHandlerSN)(MQTTSN::MessageData&);
+
+    // Should this assume that the socket is open/connected or do the job itself?
+    MQTTSNClient(SocketType* _socket) {
+        socket = _socket;
+        mqttNet = new MQTTNetworkTemplate<SocketType>(socket);
+        client = new MQTTSN::Client<MQTTNetworkTemplate<SocketType>, Countdown>(*mqttNet);
+    };
+
+    int connect(MQTTSNPacket_connectData& options) {
+        return client->connect(options);
+    }
+
+    int publish(MQTTSN_topicid& topicName, MQTTSN::Message& message) {
+        return client->publish(topicName, message);
+    }
+
+    int subscribe(MQTTSN_topicid& topicFilter, enum MQTTSN::QoS qos, messageHandlerSN mh) {
+        return client->subscribe(topicFilter, qos, mh);
+    }
+
+    int unsubscribe(MQTTSN_topicid& topicFilter) {
+        return client->unsubscribe(topicFilter);
+    }
+
+    int yield(unsigned long timeout_ms = 1000L) {
+        return client->yield(timeout_ms);
+    }
+
+    int disconnect() {
+        return client->disconnect();
+    }
+private:
+
+    SocketType* socket;
+    MQTTNetworkTemplate<SocketType>* mqttNet;
+    MQTTSN::Client<MQTTNetworkTemplate<SocketType>, Countdown>* client;
+};
+
 #endif // MQTT_CLIENT_NEW_H

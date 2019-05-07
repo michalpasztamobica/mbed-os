@@ -40,7 +40,12 @@ public:
     }
 
     int connect(const char* hostname, int port) {
-        socket->open(network);
+        printf("connecting...\n");
+        int ret = 0;
+        if ((ret = socket->open(network)) != NSAPI_ERROR_OK) {
+            printf("open error...\n");
+            return ret;
+        }
         return socket->connect(hostname, port);
     }
 

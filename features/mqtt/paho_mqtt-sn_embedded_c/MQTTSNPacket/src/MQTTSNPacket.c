@@ -114,7 +114,7 @@ exit:
 	return len;
 }
 
-
+#if 0 // Those are already defined in MQTTSNPacket.c
 /**
  * Calculates an integer from two bytes read from the input buffer
  * @param pptr pointer to the input buffer - incremented by the number of bytes used & returned
@@ -186,7 +186,7 @@ int getLenStringLen(char* ptr)
 	int len = 256*((unsigned char)(*ptr)) + (unsigned char)(*(ptr+1));
 	return len;
 }
-
+#endif
 
 void writeMQTTSNString(unsigned char** pptr, MQTTSNString MQTTSNString)
 {

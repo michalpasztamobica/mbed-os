@@ -26,6 +26,7 @@
 #include <MQTTmbed.h> // Countdown
 
 int arrivedcount = 0;
+int arrivedcountSN = 0;
 
 void messageArrived(MQTT::MessageData& md)
 {
@@ -33,14 +34,16 @@ void messageArrived(MQTT::MessageData& md)
     printf("Message arrived: qos %d, retained %d, dup %d, packetid %d\r\n", message.qos, message.retained, message.dup, message.id);
     printf("Payload %.*s\r\n", message.payloadlen, (char*)message.payload);
     ++arrivedcount;
+    printf("arrived msg: %d\n", arrivedcount);
 }
 
 void messageArrivedSN(MQTTSN::MessageData& md)
 {
     MQTTSN::Message &message = md.message;
-    printf("Message arrived: qos %d, retained %d, dup %d, packetid %d\r\n", message.qos, message.retained, message.dup, message.id);
+    printf("Message arrived SN: qos %d, retained %d, dup %d, packetid %d\r\n", message.qos, message.retained, message.dup, message.id);
     printf("Payload %.*s\r\n", message.payloadlen, (char*)message.payload);
-    ++arrivedcount;
+    ++arrivedcountSN;
+    printf("arrived msg: %d\n", arrivedcountSN);
 }
 
 void MQTT_CONNECT()
@@ -93,15 +96,13 @@ void MQTT_CONNECT_TLS()
 
 void MQTT_CONNECT_UDP()
 {
+    arrivedcountSN = 0;
     NetworkInterface *net = NetworkInterface::get_default_instance();
     nsapi_error_t err = net->connect();
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, err);
     printf("MBED: TCPClient IP address is '%s'\n", net->get_ip_address());
 
-    UDPSocket sock;
-    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, sock.open(NetworkInterface::get_default_instance()));
-
-    MQTTSNNetworkUDP mqttNet(sock);
+    MQTTSNNetworkUDP mqttNet(net);
 
     MQTTSN::Client<MQTTSNNetworkUDP, Countdown> client(mqttNet);
 
@@ -114,6 +115,5 @@ void MQTT_CONNECT_UDP()
     send_messages_sn< MQTTSN::Client<MQTTSNNetworkUDP, Countdown> >(client, "MQTT_CONNECT_UDP");
 
     mqttNet.disconnect();
-
     net->disconnect();
 }
