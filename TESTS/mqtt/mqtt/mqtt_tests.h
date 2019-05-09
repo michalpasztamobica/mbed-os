@@ -19,70 +19,107 @@
 #define MQTT_TESTS_H
 
 #include <MQTTClient.h>
-
 #include <MQTTSNClient.h>
 
-extern const char* hostname;
+#include "unity/unity.h"
+
+namespace mqtt_global {
+// For TLS hostname must match the "Common Name" set in the server certificate
+//const char* hostname = "test.mosquitto.org";
+static const char* hostname = "192.168.8.76";
+static const char* topic = "test";
+static const char* mbed_public_test_topic = "mbed_public_test_topic";
+static char topic_too_long[100+1];
+static MQTTSN_topicid mbed_public_test_topic_sn;
+static const int port = 1883;
+static const int port_tls = 8883;
+static const int port_udp = 10000;
 extern const char* SSL_CA_PEM;
 extern const char* SSL_CLIENT_CERT_PEM;
 extern const char* SSL_CLIENT_PRIVATE_KEY_PEM;
-
-/*
- * Test cases
- */
-void MQTT_CONNECT();
-void MQTT_CONNECT_TLS();
-void MQTT_CONNECT_NEW();
-void MQTT_CONNECT_NEW_TLS();
-void MQTT_CONNECT_TEMPLATES();
-void MQTT_CONNECT_TEMPLATES_TLS();
-void MQTT_CONNECT_UDP();
-void MQTT_CONNECT_NEW_UDP();
-void MQTT_CONNECT_TEMPLATES_UDP();
+extern MQTT::Message default_message;
+extern MQTTSN::Message default_message_sn;
+static char message_buffer[100];
+}
 
 extern int arrivedcount;
 extern int arrivedcountSN;
 void messageArrived(MQTT::MessageData& md);
 void messageArrivedSN(MQTTSN::MessageData& md);
 
-template <class Client> int send_messages(Client &client, char *clientID) {
+/*
+ * Test cases
+ */
+void MQTT_CONNECT_NOT_CONNECTED();
+void MQTT_CONNECT();
+void MQTT_CONNECT_INVALID();
+void MQTT_SUBSCRIBE();
+void MQTT_SUBSCRIBE_NETWORK_NOT_CONNECTED();
+void MQTT_SUBSCRIBE_CLIENT_NOT_CONNECTED();
+void MQTT_SUBSCRIBE_TOPIC_TOO_LONG();
+void MQTT_SUBSCRIBE_INVALID_MESSAGE_HANDLER();
+void MQTT_SUBSCRIBE_RECEIVE();
+void MQTT_UNSUBSCRIBE_WITHOUT_SUBSCRIBE();
+void MQTT_UNSUBSCRIBE_INVALID();
+void MQTT_PUBLISH();
+void MQTT_PUBLISH_NOT_CONNECTED();
+void MQTT_PUBLISH_TOPIC_TOO_LONG();
+void MQTT_CONNECT_USER_PASSWORD_INCORRECT();
+void MQTT_CONNECT_SUBSCRIBE_PUBLISH();
+void MQTT_CONNECT_SUBSCRIBE_PUBLISH_USER_PASSWORD();
+void MQTT_TLS_CONNECT_SUBSCRIBE_PUBLISH();
+
+void MQTTSN_CONNECT_NOT_CONNECTED();
+void MQTTSN_TEST_CONNECT(); // Avoid clash with MQTTSN enum.
+void MQTTSN_CONNECT_INVALID();
+void MQTTSN_TEST_SUBSCRIBE(); // Avoid clash with MQTTSN enum.
+void MQTTSN_SUBSCRIBE_NETWORK_NOT_CONNECTED();
+void MQTTSN_SUBSCRIBE_CLIENT_NOT_CONNECTED();
+void MQTTSN_SUBSCRIBE_TOPIC_TOO_LONG();
+void MQTTSN_SUBSCRIBE_INVALID_MESSAGE_HANDLER();
+void MQTTSN_SUBSCRIBE_RECEIVE();
+void MQTTSN_UNSUBSCRIBE_WITHOUT_SUBSCRIBE();
+void MQTTSN_UNSUBSCRIBE_INVALID();
+void MQTTSN_TEST_PUBLISH();
+void MQTTSN_PUBLISH_NOT_CONNECTED();
+void MQTTSN_PUBLISH_TOPIC_TOO_LONG();
+void MQTTSN_IS_CONNECTED();
+void MQTTSN_IS_CONNECTED_CLIENT_NOT_CONNECTED();
+void MQTTSN_IS_CONNECTED_NETWORK_NOT_CONNECTED();
+void MQTTSN_UDP_CONNECT_SUBSCRIBE_PUBLISH();
+
+// New APIs demo:
+void MQTT_FULL_NEW_TLS();
+void MQTT_FULL_TEMPLATES();
+void MQTT_FULL_TEMPLATES_TLS();
+void MQTT_FULL_NEW();
+void MQTT_FULL_NEW_UDP();
+void MQTT_FULL_TEMPLATES_UDP();
+
+template <class Client> void send_messages(Client &client, char *clientID, bool user_password = false) {
     arrivedcount = 0;
-    char* topic = "test";
-    int rc;
     MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
     data.MQTTVersion = 3;
     data.clientID.cstring = (char*)clientID;
-    data.username.cstring = "testuser";
-    data.password.cstring = "testpassword";
-    if ((rc = client.connect(data)) != 0)
-        printf("rc from MQTT connect is %d\r\n", rc);
-
-    if ((rc = client.subscribe(topic, MQTT::QOS2, messageArrived)) != 0)
-        printf("rc from MQTT subscribe is %d\r\n", rc);
-
-    MQTT::Message message;
-
-    // QoS 0
-    char buf[100];
-    sprintf(buf, "QoS 0 %s\n", clientID);
-    message.qos = MQTT::QOS0;
-    message.retained = false;
-    message.dup = false;
-    message.payload = (void*)buf;
-    message.payloadlen = strlen(buf)+1;
-    rc = client.publish(topic, message);
-    printf("arrived: %d\n", arrivedcount);
-    while (arrivedcount < 1) {
-        client.yield(100);
-        printf("arrived: %d\n", arrivedcount);
+    if (user_password) {
+        data.username.cstring = (char*)"mbed";
+        data.password.cstring = (char*)"1234";
     }
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.connect(data));
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.subscribe(mqtt_global::topic, MQTT::QOS2, messageArrived));
 
-    printf("Moving to 1\n");
+    MQTT::Message message = mqtt_global::default_message;
+
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.publish(mqtt_global::topic, message));
+    while (arrivedcount < 1)
+        client.yield(100);
+
     // QoS 1
+    char buf[100];
     sprintf(buf, "QoS 1 %s\n", clientID);
     message.qos = MQTT::QOS1;
     message.payloadlen = strlen(buf)+1;
-    rc = client.publish(topic, message);
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.publish(mqtt_global::topic, message));
     while (arrivedcount < 2)
         client.yield(100);
 
@@ -90,57 +127,47 @@ template <class Client> int send_messages(Client &client, char *clientID) {
 //    sprintf(buf, "QoS 2 %s\n", clientID);
 //    message.qos = MQTT::QOS2;
 //    message.payloadlen = strlen(buf)+1;
-//    rc = client.publish(topic, message);
+//    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.publish(topic, message));
 //    while (arrivedcount < 3)
 //        client.yield(100);
 
-    if ((rc = client.unsubscribe(topic)) != 0)
-        printf("rc from unsubscribe was %d\r\n", rc);
-
-    if ((rc = client.disconnect()) != 0)
-        printf("rc from disconnect was %d\r\n", rc);
-
-    return rc;
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.unsubscribe(mqtt_global::topic));
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.disconnect() != 0);
 }
 
-template <class Client> int send_messages_sn(Client &client, char *clientID) {
+/**
+ * @brief Initialize the topic with default values.
+ *
+ * MQTT-SN subscribe() might modify the topic, so we can't use a predefined global variable.
+ */
+void init_topic_sn(MQTTSN_topicid& topic_sn);
+void init_topic_sn_too_long(MQTTSN_topicid& topic_sn);
+
+template <class Client> void send_messages_sn(Client &client, char *clientID) {
     arrivedcountSN = 0;
-    char topicName[5] = "test";
-    MQTTSN_topicid topic;
-    topic.type = MQTTSN_TOPIC_TYPE_NORMAL;
-    topic.data.long_.len = strlen(topicName);
-    topic.data.long_.name = const_cast<char*>(topicName);
-    int rc;
     MQTTSNPacket_connectData data = MQTTSNPacket_connectData_initializer;
     data.clientID.cstring = clientID;
-    if ((rc = client.connect(data)) != 0)
-        printf("rc from MQTT connect is %d\r\n", rc);
-
-    if ((rc = client.subscribe(topic, MQTTSN::QOS2, messageArrivedSN)) != 0)
-        printf("rc from MQTT subscribe is %d\r\n", rc);
-
-    printf("Topic id: %d\n", topic.data.id);
-    MQTTSN::Message message;
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.connect(data));
+    MQTTSN_topicid topic;
+    init_topic_sn(topic);
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.subscribe(topic, MQTTSN::QOS2, messageArrivedSN));
+    MQTTSN::Message message;// = mqtt_global::default_message_sn;
 
     // QoS 0
-    char buf[100];
-    sprintf(buf, "QoS 0 %s\n", clientID);
-    message.qos = MQTTSN::QOS0;
-    message.retained = false;
-    message.dup = false;
-    message.payload = (void*)buf;
-    message.payloadlen = strlen(buf)+1;
-    rc = client.publish(topic, message);
-
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.publish(topic, mqtt_global::default_message_sn));
 //    TODO: get the gateway/client configuration right to have the subscribe working.
 //    while (arrivedcountSN < 1)
 //        client.yield(100);
 
     // QoS 1
+    char buf[100];
     sprintf(buf, "QoS 1 %s\n", clientID);
-    message.qos = MQTTSN::QOS1;
+    message.qos = MQTTSN::QOS0;
+    message.retained = false;
+    message.dup = false;
+    message.payload = (void*)buf;
     message.payloadlen = strlen(buf)+1;
-    rc = client.publish(topic, message);
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.publish(topic, message));
 //    while (arrivedcountSN < 2)
 //        client.yield(100);
 
@@ -152,13 +179,8 @@ template <class Client> int send_messages_sn(Client &client, char *clientID) {
 //    while (arrivedcountSN < 3)
 //        client.yield(100);
 
-    if ((rc = client.unsubscribe(topic)) != 0)
-        printf("rc from unsubscribe was %d\r\n", rc);
-
-    if ((rc = client.disconnect()) != 0)
-        printf("rc from disconnect was %d\r\n", rc);
-
-    return rc;
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.unsubscribe(topic)); //mqtt_global::topic_sn
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.disconnect() != 0);
 }
 
 #endif //MQTT_TESTS_H

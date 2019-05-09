@@ -22,71 +22,48 @@
 #include <MQTTClientNew.h>
 #include <MQTTmbed.h> // Countdown
 
-extern int arrivedcount;
-
-void MQTT_CONNECT_NEW()
+void MQTT_FULL_NEW()
 {
     NetworkInterface *net = NetworkInterface::get_default_instance();
-    nsapi_error_t err = net->connect();
-    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, err);
-    printf("MBED: TCPClient IP address is '%s'\n", net->get_ip_address());
-
-    int port = 1883;
-    SocketAddress sockAddr(hostname, port);
+    SocketAddress sockAddr(mqtt_global::hostname, mqtt_global::port);
     TCPSocket socket;
     socket.open(net);
     socket.connect(sockAddr);
-    printf("Connecting to %s:%d\r\n", hostname, port);
 
     MQTTClient client(&socket);
 
-    send_messages<MQTTClient>(client, "MQTT_CONNECT_NEW");
+    send_messages<MQTTClient>(client, "MQTT_FULL_NEW");
 
     socket.close();
-    net->disconnect();
-
 }
 
-void MQTT_CONNECT_NEW_TLS()
+void MQTT_FULL_NEW_TLS()
 {
     NetworkInterface *net = NetworkInterface::get_default_instance();
-    nsapi_error_t err = net->connect();
-    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, err);
-    printf("MBED: TCPClient IP address is '%s'\n", net->get_ip_address());
-
-    int port = 8883;
     TLSSocket *socket = new TLSSocket; // Allocate on heap to avoid stack overflow.
     TEST_ASSERT(NSAPI_ERROR_OK == socket->open(net));
-    TEST_ASSERT(NSAPI_ERROR_OK == socket->set_root_ca_cert(SSL_CA_PEM));
-    int ret = socket->connect(hostname, port);
+    TEST_ASSERT(NSAPI_ERROR_OK == socket->set_root_ca_cert(mqtt_global::SSL_CA_PEM));
+    int ret = socket->connect(mqtt_global::hostname, mqtt_global::port_tls);
     TEST_ASSERT(NSAPI_ERROR_OK == ret);
 
     MQTTClient client(socket);
 
-    send_messages<MQTTClient>(client, "MQTT_CONNECT_NEW_TLS");
+    send_messages<MQTTClient>(client, "MQTT_FULL_NEW_TLS");
 
     socket->close();
     delete socket;
-    net->disconnect();
 }
 
-void MQTT_CONNECT_NEW_UDP()
+void MQTT_FULL_NEW_UDP()
 {
     NetworkInterface *net = NetworkInterface::get_default_instance();
-    nsapi_error_t err = net->connect();
-    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, err);
-    printf("MBED: TCPClient IP address is '%s'\n", net->get_ip_address());
-
-    int port = 10000;
-    SocketAddress sockAddr(hostname, port);
+    SocketAddress sockAddr(mqtt_global::hostname, mqtt_global::port_udp);
     UDPSocket socket;
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, socket.open(net));
-    printf("Connecting to %s:%d\r\n", hostname, port);
     TEST_ASSERT(NSAPI_ERROR_OK == socket.connect(sockAddr));
     MQTTClient client(&socket);
 
-    send_messages_sn< MQTTClient >(client, "MQTT_CONNECT_NEW_UDP");
+    send_messages_sn< MQTTClient >(client, "MQTT_FULL_NEW_UDP");
 
     socket.close();
-    net->disconnect();
 }
