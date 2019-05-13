@@ -151,15 +151,14 @@ template <class Client> void send_messages_sn(Client &client, char *clientID) {
     MQTTSN_topicid topic;
     init_topic_sn(topic);
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.subscribe(topic, MQTTSN::QOS2, messageArrivedSN));
-    MQTTSN::Message message;// = mqtt_global::default_message_sn;
 
     // QoS 0
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.publish(topic, mqtt_global::default_message_sn));
-//    TODO: get the gateway/client configuration right to have the subscribe working.
-//    while (arrivedcountSN < 1)
-//        client.yield(100);
+    while (arrivedcountSN < 1)
+        client.yield(100);
 
     // QoS 1
+    MQTTSN::Message message;
     char buf[100];
     sprintf(buf, "QoS 1 %s\n", clientID);
     message.qos = MQTTSN::QOS0;
@@ -168,14 +167,14 @@ template <class Client> void send_messages_sn(Client &client, char *clientID) {
     message.payload = (void*)buf;
     message.payloadlen = strlen(buf)+1;
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.publish(topic, message));
-//    while (arrivedcountSN < 2)
-//        client.yield(100);
+    while (arrivedcountSN < 2)
+        client.yield(100);
 
 //    // QoS 2
 //    sprintf(buf, "QoS 2 %s\n", clientID);
 //    message.qos = MQTTSN::QOS2;
 //    message.payloadlen = strlen(buf)+1;
-//    rc = client.publish(topic, message);
+//    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK,client.publish(topic, message));
 //    while (arrivedcountSN < 3)
 //        client.yield(100);
 

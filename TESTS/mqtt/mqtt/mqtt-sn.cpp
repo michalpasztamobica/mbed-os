@@ -134,17 +134,17 @@ void MQTTSN_SUBSCRIBE_RECEIVE()
     MQTTSN_LEGACY_API_INIT();
     data.clientID.cstring = (char*)"MQTTSN_SUBSCRIBE_INVALID_MESSAGE_HANDLER";
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.connect(data));
-    int arrivedCountBeforeSubscription = arrivedcount;
+    int arrivedCountBeforeSubscription = arrivedcountSN;
     MQTTSN_topicid topic_sn;
     topic_sn.type = MQTTSN_TOPIC_TYPE_NORMAL;
     topic_sn.data.long_.len = strlen(mqtt_global::mbed_public_test_topic);
     topic_sn.data.long_.name = const_cast<char*>(mqtt_global::mbed_public_test_topic);
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.subscribe(topic_sn, MQTTSN::QOS0, messageArrivedSN));
     // TODO get the callbacks working for MQTT-SN
-//    while (arrivedCountBeforeSubscription == arrivedcount) {
-//        client.yield(100);
-//    }
-//    TEST_ASSERT_TRUE(arrivedCountBeforeSubscription < arrivedcount);
+    while (arrivedCountBeforeSubscription == arrivedcountSN) {
+        client.yield(100);
+    }
+    TEST_ASSERT_TRUE(arrivedCountBeforeSubscription < arrivedcountSN);
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.unsubscribe(topic_sn));
     MQTTSN_LEGACY_API_DEINIT();
 }
