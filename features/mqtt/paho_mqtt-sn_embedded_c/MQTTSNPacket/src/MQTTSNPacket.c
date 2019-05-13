@@ -114,6 +114,24 @@ exit:
 	return len;
 }
 
+/**
+ * Check if two MQTT-SN topics are equal. Long names are not checked.
+ * @param a pointer to first topic
+ * @param b pointer to second topic
+ * @return boolean true if topics are equal and flase otherwise
+ */
+int MQTTSNTopic_equals(const MQTTSN_topicid* const a, const MQTTSN_topicid* const b)
+{
+    if ((a->type == b->type)
+            && (a->data.id == b->data.id)
+            && (a->data.short_name[0] == b->data.short_name[0])
+            && (a->data.short_name[1] == b->data.short_name[1])) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 #if 0 // Those are already defined in MQTTSNPacket.c
 /**
  * Calculates an integer from two bytes read from the input buffer

@@ -452,18 +452,19 @@ int MQTTSN::Client<Network, Timer, a, MAX_MESSAGE_HANDLERS>::deliverMessage(MQTT
     // we have to find the right message handler - indexed by topic
     for (int i = 0; i < MAX_MESSAGE_HANDLERS; ++i)
     {
-        /*
-        if (messageHandlers[i].topicFilter != 0 && (MQTTSNtopic_equals(&topic, messageHandlers[i].topicFilter) ||
-                isTopicMatched(messageHandlers[i].topicFilter, topic)))
+        MQTTSNString str = MQTTSNString_initializer;
+        str.lenstring.data = topic.data.long_.name;
+        str.lenstring.len = topic.data.long_.len;
+        if (messageHandlers[i].topicFilter != 0 && (MQTTSNTopic_equals(&topic, messageHandlers[i].topicFilter) ||
+                isTopicMatched(messageHandlers[i].topicFilter->data.long_.name, str)))
         {
             if (messageHandlers[i].fp.attached())
             {
-                MessageData md(topicName, message);
+                MessageData md(topic, message);
                 messageHandlers[i].fp(md);
                 rc = SUCCESS;
             }
         }
-        */
     }
 
     if (rc == FAILURE && defaultMessageHandler.attached())
@@ -740,8 +741,12 @@ int MQTTSN::Client<Network, Timer, MAX_PACKET_SIZE, MAX_MESSAGE_HANDLERS>::subsc
         int grantedQoS = -1;
         unsigned short mypacketid;
         unsigned char rc;
-        if (MQTTSNDeserialize_suback(&grantedQoS, &topicFilter.data.id, &mypacketid, &rc, readbuf, MAX_PACKET_SIZE) == 1)
-            rc = grantedQoS;
+        if (MQTTSNDeserialize_suback(&grantedQoS, &topicFilter.data.id, &mypacketid, &rc, readbuf, MAX_PACKET_SIZE) != 1)
+            goto exit;
+
+        if (qos != grantedQoS)
+            goto exit;
+
         if (rc == MQTTSN_RC_ACCEPTED)
         {
             for (int i = 0; i < MAX_MESSAGE_HANDLERS; ++i)

@@ -133,6 +133,7 @@ int MQTTSNPacket_len(int length);
 
 int MQTTSNPacket_encode(unsigned char* buf, int length);
 int MQTTSNPacket_decode(unsigned char* buf, int buflen, int* value);
+int MQTTSNTopic_equals(const MQTTSN_topicid* const a, const MQTTSN_topicid* const b);
 
 int readInt(unsigned char** pptr);
 char readChar(unsigned char** pptr);
