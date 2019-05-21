@@ -54,21 +54,23 @@ public:
     MQTTClient(UDPSocket* _socket);
     MQTTClient(DTLSSocket* _socket);
 
-    int connect(MQTTPacket_connectData& options);
-    int connect(MQTTSNPacket_connectData& options);
+    nsapi_error_t connect(MQTTPacket_connectData& options);
+    nsapi_error_t connect(MQTTSNPacket_connectData& options);
 
-    int publish(const char* topicName, MQTT::Message& message);
-    int publish(MQTTSN_topicid& topicName, MQTTSN::Message& message);
+    nsapi_error_t publish(const char* topicName, MQTT::Message& message);
+    nsapi_error_t publish(MQTTSN_topicid& topicName, MQTTSN::Message& message);
 
-    int subscribe(const char* topicFilter, enum MQTT::QoS qos, messageHandler mh);
-    int subscribe(MQTTSN_topicid& topicFilter, enum MQTTSN::QoS qos, messageHandlerSN mh);
+    nsapi_error_t subscribe(const char* topicFilter, enum MQTT::QoS qos, messageHandler mh);
+    nsapi_error_t subscribe(MQTTSN_topicid& topicFilter, enum MQTTSN::QoS qos, messageHandlerSN mh);
 
-    int unsubscribe(const char* topicFilter);
-    int unsubscribe(MQTTSN_topicid& topicFilter);
+    nsapi_error_t unsubscribe(const char* topicFilter);
+    nsapi_error_t unsubscribe(MQTTSN_topicid& topicFilter);
 
-    int yield(unsigned long timeout_ms = 1000L) ;
+    nsapi_error_t yield(unsigned long timeout_ms = 1000L) ;
 
-    int disconnect();
+    nsapi_error_t disconnect();
+
+    bool isConnected();
 
     void init(Socket* sock);
 

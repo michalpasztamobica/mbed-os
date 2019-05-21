@@ -15,54 +15,59 @@
  * limitations under the License.
  */
 
-#include <MQTTSNNetworkUDP.h>
 #include "mqtt_tests.h"
 
-#include <MQTTSNClient.h>
-#include <MQTTmbed.h> // Countdown
+#include <MQTTClientMbedOs.h>
 
-#define MQTTSN_LEGACY_API_INIT() \
+#define MQTTSN_API_INIT() \
     arrivedcountSN = 0; \
     NetworkInterface *net = NetworkInterface::get_default_instance(); \
-    MQTTSNNetworkUDP mqttNet(net); \
-    MQTTSN::Client<MQTTSNNetworkUDP, Countdown> client(mqttNet); \
-    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, mqttNet.connect(mqtt_global::hostname, mqtt_global::port_udp)); \
+    SocketAddress sockAddr(mqtt_global::hostname, mqtt_global::port_udp); \
+    UDPSocket socket; \
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, socket.open(net)); \
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, socket.connect(sockAddr)); \
+    MQTTClient client(&socket); \
     MQTTSNPacket_connectData data = MQTTSNPacket_connectData_initializer;
 
-#define MQTTSN_LEGACY_API_DEINIT() TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, mqttNet.disconnect());
+#define MQTTSN_API_DEINIT() \
+        TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, socket.close());\
 
-void MQTTSN_LEGACY_TEST_CONNECT()
+void MQTTSN_TEST_CONNECT()
 {
-    MQTTSN_LEGACY_API_INIT();
-    data.clientID.cstring = (char*)"MQTTSN_LEGACY_CONNECT";
+    MQTTSN_API_INIT();
+    data.clientID.cstring = (char*)"MQTTSN_CONNECT";
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.connect(data));
-    MQTTSN_LEGACY_API_DEINIT();
+    MQTTSN_API_DEINIT();
 }
 
-void MQTTSN_LEGACY_CONNECT_INVALID()
+void MQTTSN_CONNECT_INVALID()
 {
-    MQTTSN_LEGACY_API_INIT();
+    MQTTSN_API_INIT();
     data.clientID.cstring = (char*)"12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
-    TEST_ASSERT_EQUAL(-1, client.connect(data));
-    MQTTSN_LEGACY_API_DEINIT();
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_NO_CONNECTION, client.connect(data));
+    MQTTSN_API_DEINIT();
 }
 
-void MQTTSN_LEGACY_CONNECT_NOT_CONNECTED()
+void MQTTSN_CONNECT_NOT_CONNECTED()
 {
     NetworkInterface *net = NetworkInterface::get_default_instance();
-    MQTTSNNetworkUDP mqttNet(net);
-    MQTTSN::Client<MQTTSNNetworkUDP, Countdown> client(mqttNet);
+    SocketAddress sockAddr("i.dont.exist", mqtt_global::port_udp);
+    UDPSocket socket;
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, socket.open(net));
+
     //Connect in UDP is not real, it will return success...
-    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, mqttNet.connect("i.dont.exist", mqtt_global::port_udp));
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, socket.connect(sockAddr));
+    MQTTClient client(&socket);
     MQTTSNPacket_connectData data = MQTTSNPacket_connectData_initializer;
+
     //... but we should not be able to connect to the server.
-    TEST_ASSERT_EQUAL(-1, client.connect(data));
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_NO_CONNECTION, client.connect(data));
 }
 
-void MQTTSN_LEGACY_TEST_SUBSCRIBE()
+void MQTTSN_TEST_SUBSCRIBE()
 {
-    MQTTSN_LEGACY_API_INIT();
-    data.clientID.cstring = (char*)"MQTTSN_LEGACY_TEST_SUBSCRIBE";
+    MQTTSN_API_INIT();
+    data.clientID.cstring = (char*)"MQTTSN_TEST_SUBSCRIBE";
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.connect(data));
     MQTTSN_topicid topic_sn;
     init_topic_sn(topic_sn);
@@ -74,65 +79,68 @@ void MQTTSN_LEGACY_TEST_SUBSCRIBE()
     init_topic_sn(topic_sn);
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.subscribe(topic_sn, MQTTSN::QOS2, messageArrivedSN));
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.unsubscribe(topic_sn));
-    MQTTSN_LEGACY_API_DEINIT();
+    MQTTSN_API_DEINIT();
 
 }
 
-void MQTTSN_LEGACY_SUBSCRIBE_NETWORK_NOT_CONNECTED()
+void MQTTSN_SUBSCRIBE_NETWORK_NOT_CONNECTED()
 {
     NetworkInterface *net = NetworkInterface::get_default_instance();
-    MQTTSNNetworkUDP mqttNet(net);
-    MQTTSN::Client<MQTTSNNetworkUDP, Countdown> client(mqttNet);
+    SocketAddress sockAddr("i.dont.exist", mqtt_global::port_udp);
+    UDPSocket socket;
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, socket.open(net));
+
     //Connect in UDP is not real, it will return success...
-    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, mqttNet.connect("i.dont.exist", mqtt_global::port));
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, socket.connect(sockAddr));
+    MQTTClient client(&socket);
     MQTTSNPacket_connectData data = MQTTSNPacket_connectData_initializer;
-    data.clientID.cstring = (char*)"MQTTSN_LEGACY_SUBSCRIBE_NETWORK_NOT_CONNECTED";
+    data.clientID.cstring = (char*)"MQTTSN_SUBSCRIBE_NETWORK_NOT_CONNECTED";
     // ... but the connect should fail ...
-    TEST_ASSERT_EQUAL(-1, client.connect(data));
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_NO_CONNECTION, client.connect(data));
     MQTTSN_topicid topic_sn;
     init_topic_sn(topic_sn);
     // ... and subscribe should also fail.
-    TEST_ASSERT_EQUAL(-1, client.subscribe(topic_sn, MQTTSN::QOS0, messageArrivedSN));
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_NO_CONNECTION, client.subscribe(topic_sn, MQTTSN::QOS0, messageArrivedSN));
 }
 
-void MQTTSN_LEGACY_SUBSCRIBE_CLIENT_NOT_CONNECTED()
+void MQTTSN_SUBSCRIBE_CLIENT_NOT_CONNECTED()
 {
-    MQTTSN_LEGACY_API_INIT();
+    MQTTSN_API_INIT();
     data.clientID.cstring = (char*)"12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
     MQTTSN_topicid topic_sn;
     init_topic_sn(topic_sn);
-    TEST_ASSERT_EQUAL(-1, client.connect(data));
-    TEST_ASSERT_EQUAL(-1, client.subscribe(topic_sn, MQTTSN::QOS0, messageArrivedSN));
-    MQTTSN_LEGACY_API_DEINIT();
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_NO_CONNECTION, client.connect(data));
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_NO_CONNECTION, client.subscribe(topic_sn, MQTTSN::QOS0, messageArrivedSN));
+    MQTTSN_API_DEINIT();
 }
 
-void MQTTSN_LEGACY_SUBSCRIBE_TOPIC_TOO_LONG()
+void MQTTSN_SUBSCRIBE_TOPIC_TOO_LONG()
 {
-    MQTTSN_LEGACY_API_INIT();
-    data.clientID.cstring = (char*)"MQTTSN_LEGACY_SUBSCRIBE_TOPIC_TOO_LONG";
+    MQTTSN_API_INIT();
+    data.clientID.cstring = (char*)"MQTTSN_SUBSCRIBE_TOPIC_TOO_LONG";
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.connect(data));
     MQTTSN_topicid topic_sn;
     init_topic_sn_too_long(topic_sn);
-    TEST_ASSERT_EQUAL(-1, client.subscribe(topic_sn, MQTTSN::QOS0, messageArrivedSN));
-    MQTTSN_LEGACY_API_DEINIT();
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_NO_CONNECTION, client.subscribe(topic_sn, MQTTSN::QOS0, messageArrivedSN));
+    MQTTSN_API_DEINIT();
 }
 
-void MQTTSN_LEGACY_SUBSCRIBE_INVALID_MESSAGE_HANDLER()
+void MQTTSN_SUBSCRIBE_INVALID_MESSAGE_HANDLER()
 {
-    MQTTSN_LEGACY_API_INIT();
-    data.clientID.cstring = (char*)"MQTTSN_LEGACY_SUBSCRIBE_INVALID_MESSAGE_HANDLER";
+    MQTTSN_API_INIT();
+    data.clientID.cstring = (char*)"MQTTSN_SUBSCRIBE_INVALID_MESSAGE_HANDLER";
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.connect(data));
     MQTTSN_topicid topic_sn;
     init_topic_sn(topic_sn);
     // There is no NULL check inside the subscribe function.
 //    TEST_ASSERT_EQUAL(-1, client.subscribe(topic_sn, MQTTSN::QOS0, NULL));
-    MQTTSN_LEGACY_API_DEINIT();
+    MQTTSN_API_DEINIT();
 }
 
-void MQTTSN_LEGACY_SUBSCRIBE_RECEIVE()
+void MQTTSN_SUBSCRIBE_RECEIVE()
 {
-    MQTTSN_LEGACY_API_INIT();
-    data.clientID.cstring = (char*)"MQTTSN_LEGACY_SUBSCRIBE_INVALID_MESSAGE_HANDLER";
+    MQTTSN_API_INIT();
+    data.clientID.cstring = (char*)"MQTTSN_SUBSCRIBE_INVALID_MESSAGE_HANDLER";
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.connect(data));
     int arrivedCountBeforeSubscription = arrivedcountSN;
     MQTTSN_topicid topic_sn;
@@ -146,35 +154,35 @@ void MQTTSN_LEGACY_SUBSCRIBE_RECEIVE()
     }
     TEST_ASSERT_TRUE(arrivedCountBeforeSubscription < arrivedcountSN);
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.unsubscribe(topic_sn));
-    MQTTSN_LEGACY_API_DEINIT();
+    MQTTSN_API_DEINIT();
 }
 
-void MQTTSN_LEGACY_UNSUBSCRIBE_WITHOUT_SUBSCRIBE()
+void MQTTSN_UNSUBSCRIBE_WITHOUT_SUBSCRIBE()
 {
-    MQTTSN_LEGACY_API_INIT();
-    data.clientID.cstring = (char*)"MQTTSN_LEGACY_UNSUBSCRIBE_WITHOUT_SUBSCRIBE";
+    MQTTSN_API_INIT();
+    data.clientID.cstring = (char*)"MQTTSN_UNSUBSCRIBE_WITHOUT_SUBSCRIBE";
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.connect(data));
     MQTTSN_topicid topic_sn;
     init_topic_sn(topic_sn);
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.unsubscribe(topic_sn));
-    MQTTSN_LEGACY_API_DEINIT();
+    MQTTSN_API_DEINIT();
 }
 
-void MQTTSN_LEGACY_UNSUBSCRIBE_INVALID()
+void MQTTSN_UNSUBSCRIBE_INVALID()
 {
-    MQTTSN_LEGACY_API_INIT();
-    data.clientID.cstring = (char*)"MQTTSN_LEGACY_UNSUBSCRIBE_INVALID";
+    MQTTSN_API_INIT();
+    data.clientID.cstring = (char*)"MQTTSN_UNSUBSCRIBE_INVALID";
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.connect(data));
     MQTTSN_topicid topic_sn_too_long;
     init_topic_sn_too_long(topic_sn_too_long);
-    TEST_ASSERT_EQUAL(-1, client.unsubscribe(topic_sn_too_long));
-    MQTTSN_LEGACY_API_DEINIT();
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_NO_CONNECTION, client.unsubscribe(topic_sn_too_long));
+    MQTTSN_API_DEINIT();
 }
 
-void MQTTSN_LEGACY_TEST_PUBLISH()
+void MQTTSN_TEST_PUBLISH()
 {
-    MQTTSN_LEGACY_API_INIT();
-    data.clientID.cstring = (char*)"MQTTSN_LEGACY_PUBLISH";
+    MQTTSN_API_INIT();
+    data.clientID.cstring = (char*)"MQTTSN_PUBLISH";
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.connect(data));
     MQTTSN_topicid topic_sn;
     init_topic_sn(topic_sn);
@@ -185,77 +193,79 @@ void MQTTSN_LEGACY_TEST_PUBLISH()
 //    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.publish(topic_sn, msg));
 //    msg.qos = MQTTSN::QOS2;
 //    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.publish(topic_sn, msg));
-    MQTTSN_LEGACY_API_DEINIT();
+    MQTTSN_API_DEINIT();
 }
 
-void MQTTSN_LEGACY_PUBLISH_NOT_CONNECTED()
+void MQTTSN_PUBLISH_NOT_CONNECTED()
 {
-    MQTTSN_LEGACY_API_INIT();
+    MQTTSN_API_INIT();
     MQTTSN_topicid topic_sn;
     init_topic_sn(topic_sn);
-    TEST_ASSERT_EQUAL(-1, client.publish(topic_sn, mqtt_global::default_message_sn));
-    MQTTSN_LEGACY_API_DEINIT();
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_NO_CONNECTION, client.publish(topic_sn, mqtt_global::default_message_sn));
+    MQTTSN_API_DEINIT();
 }
 
-void MQTTSN_LEGACY_PUBLISH_TOPIC_TOO_LONG()
+void MQTTSN_PUBLISH_TOPIC_TOO_LONG()
 {
-    MQTTSN_LEGACY_API_INIT();
+    MQTTSN_API_INIT();
     data.clientID.cstring = (char*)"MQTT_PUBLISH";
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.connect(data));
     // TODO verify if this is passing intentionally or if this is a bug?
 //    TEST_ASSERT_EQUAL(-1, client.publish(mqtt_global::topic_too_long, mqtt_global::default_message));
-    MQTTSN_LEGACY_API_DEINIT();
+    MQTTSN_API_DEINIT();
 }
 
 // QTT-SN does not provide the user/password functionality so
 // MQTT_CONNECT_USER_PASSWORD_INCORRECT and MQTT_CONNECT_SUBSCRIBE_PUBLISH_USER_PASSWORD
 // cannot be executed for MQTT-SN
 
-void MQTTSN_LEGACY_IS_CONNECTED()
+void MQTTSN_IS_CONNECTED()
 {
-    MQTTSN_LEGACY_API_INIT();
-    data.clientID.cstring = (char*)"MQTTSN_LEGACY_IS_CONNECTED";
+    MQTTSN_API_INIT();
+    data.clientID.cstring = (char*)"MQTTSN_IS_CONNECTED";
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, client.connect(data));
     TEST_ASSERT_TRUE(client.isConnected());
-    MQTTSN_LEGACY_API_DEINIT();
+    MQTTSN_API_DEINIT();
 }
 
-void MQTTSN_LEGACY_IS_CONNECTED_CLIENT_NOT_CONNECTED()
+void MQTTSN_IS_CONNECTED_CLIENT_NOT_CONNECTED()
 {
-    MQTTSN_LEGACY_API_INIT();
+    MQTTSN_API_INIT();
     TEST_ASSERT_FALSE(client.isConnected());
-    MQTTSN_LEGACY_API_DEINIT();
+    MQTTSN_API_DEINIT();
 }
 
-void MQTTSN_LEGACY_IS_CONNECTED_NETWORK_NOT_CONNECTED()
+void MQTTSN_IS_CONNECTED_NETWORK_NOT_CONNECTED()
 {
     NetworkInterface *net = NetworkInterface::get_default_instance();
-    MQTTSNNetworkUDP mqttNet(net);
-    MQTTSN::Client<MQTTSNNetworkUDP, Countdown> client(mqttNet);
+    SocketAddress sockAddr("i.dont.exist", mqtt_global::port_udp);
+    UDPSocket socket;
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, socket.open(net));
+
     //Connect in UDP is not real, it will return success...
-    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, mqttNet.connect("i.dont.exist", mqtt_global::port));
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, socket.connect(sockAddr));
+    MQTTClient client(&socket);
     MQTTSNPacket_connectData data = MQTTSNPacket_connectData_initializer;
-    data.clientID.cstring = (char*)"MQTTSN_LEGACY_SUBSCRIBE_NETWORK_NOT_CONNECTED";
+    data.clientID.cstring = (char*)"MQTTSN_IS_CONNECTED_NETWORK_NOT_CONNECTED";
 
     TEST_ASSERT_FALSE(client.isConnected());
 
     // ... but the connect should fail ...
-    TEST_ASSERT_EQUAL(-1, client.connect(data));
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_NO_CONNECTION, client.connect(data));
 
     TEST_ASSERT_FALSE(client.isConnected());
 }
 
-void MQTTSN_LEGACY_UDP_CONNECT_SUBSCRIBE_PUBLISH()
+void MQTTSN_UDP_CONNECT_SUBSCRIBE_PUBLISH()
 {
-    arrivedcountSN = 0;
     NetworkInterface *net = NetworkInterface::get_default_instance();
-    MQTTSNNetworkUDP mqttNet(net);
+    SocketAddress sockAddr(mqtt_global::hostname, mqtt_global::port_udp);
+    UDPSocket socket;
+    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, socket.open(net));
+    TEST_ASSERT(NSAPI_ERROR_OK == socket.connect(sockAddr));
+    MQTTClient client(&socket);
 
-    MQTTSN::Client<MQTTSNNetworkUDP, Countdown> client(mqttNet);
+    send_messages_sn< MQTTClient >(client, "MQTT_FULL_NEW_UDP");
 
-    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, mqttNet.connect(mqtt_global::hostname, mqtt_global::port_udp));
-
-    send_messages_sn< MQTTSN::Client<MQTTSNNetworkUDP, Countdown> >(client, "MQTTSN_LEGACY_UDP_CONNECT_SUBSCRIBE_PUBLISH");
-
-    TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, mqttNet.disconnect());
+    socket.close();
 }
