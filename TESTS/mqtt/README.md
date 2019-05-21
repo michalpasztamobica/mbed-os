@@ -8,10 +8,10 @@ Target API
 
 The target for this plan is to test (TODO: update links to point to mbed-os master after merge):
 
--   [legacy MQTTClient paho implementation](https://github.com/michalpasztamobica/mbed-os/tree/mqtt/features/mqtt/paho_mqtt_embedded_c/MQTTClient) with [mbed-os MQTTNetwork implementations](https://github.com/michalpasztamobica/mbed-os/tree/mqtt/features/mqtt/src).
--   [new MQTTClient mbed-os wrapper (both for MQTT and MQTT-SN)](https://github.com/michalpasztamobica/mbed-os/blob/mqtt/features/mqtt/src/MQTTClientNew.h).
+-   [legacy MQTTClient paho implementation](../../features/mqtt/paho_mqtt_embedded_c/MQTTClient) with [mbed-os MQTTNetwork implementations](../../mqtt/features/mqtt/src).
+-   [new MQTTClient mbed-os wrapper (both for MQTT and MQTT-SN)](../../mqtt/src/MQTTClientNew.h).
 
-Mbed-os tests are NOT meant to test the underlying Eclipse paho [MQTT](https://github.com/michalpasztamobica/mbed-os/tree/mqtt/features/mqtt/paho_mqtt_embedded_c) and [MQTT-SN](https://github.com/michalpasztamobica/mbed-os/tree/mqtt/features/mqtt/paho_mqtt-sn_embedded_c) libraries. The tests provided are integration tests, checking whether MQTT works correctly with the mbed-os sockets.
+Mbed-os tests are NOT meant to test the underlying Eclipse paho [MQTT](https://github.com/michalpasztamobica/mbed-os/tree/mqtt/features/mqtt/paho_mqtt_embedded_c) and [MQTT-SN](../../features/mqtt/paho_mqtt-sn_embedded_c) libraries. The tests provided are integration tests, checking whether MQTT works correctly with the mbed-os sockets.
 
 Tools to use
 ------------
@@ -27,32 +27,22 @@ Test environment
 
 As a general guideline, network connectivity with public Internet access is required. This satisfies Socket tests, but specific connectivity methods might require some extra configuration or devices within the network.
 
-The test environment consist of DUTs, network connection and an MQTT broker. Arm provides a public test server with an MQTT broker, but it can be installed locally as well, if an isolated test environment is required.
+The test environment consist of DUTs, network connection and an MQTT broker.
 
-### Public test server
+### Test server setup
 
-Address: `echo.mbedcloudtesting.com'.
-
-Both IPv4 and IPv6 addresses are available from a public DNS service:
-
-```.sh
-$ host echo.mbedcloudtesting.com
-echo.mbedcloudtesting.com has address 52.215.34.155
-echo.mbedcloudtesting.com has IPv6 address 2a05:d018:21f:3800:8584:60f8:bc9f:e614
-```
-
-**Open services in the test server**
+**Required services in the test server**
 
 -   MQTT protcol is enabled on TCP port 1883. Port 8883 for TLS
 -   MQTT-SN protocol is enabled on UDP port 10000.
 
 Configure the firewall to allow this traffic to access the MQTT test server.
 
-There is a topic provided in the broker named "mbedos_mqtt_publish_every_1_sec", that publishes a message with QoS = 0 and content "Test message" every second. This is intended for use in testing the subscription without having to publish any additional messages.
+Some tests are wrapped with a MQTT_MBED_PUBLIC_TEST_TOPIC_AVAILABLE macro. They will only work if a topic is provided in the broker named "mbed_public_test_topic", that publishes a message with QoS = 0 and content "Test message" with a constant frequency. This is intended for use in testing the subscription without having to publish any additional messages.
 
 **Example configuration for Debian/Ubuntu Linux**
 
-The test server is using an open-source [Eclipse Mosquitto MQTT broker](https://mosquitto.org/) and [Eclipse paho MQTT-SN Gateway](https://www.eclipse.org/paho/components/mqtt-sn-transparent-gateway/), which are available on many operating systems, and installing them is out of scope of this document. Below is an example of how to install these services into a Debian/Ubuntu based Linux distribution.
+The example test server is using an open-source [Eclipse Mosquitto MQTT broker](https://mosquitto.org/) and [Eclipse paho MQTT-SN Gateway](https://www.eclipse.org/paho/components/mqtt-sn-transparent-gateway/), which are available on many operating systems, and installing them is out of scope of this document. Below is an example of how to install these services into a Debian/Ubuntu based Linux distribution.
 
 ***MQTT***
 
@@ -107,15 +97,13 @@ Make sure that allow_anonymous is set to true, as most test access the broker an
 
 The tests are by default using user "mbed" and password "1234", so consider setting those on your broker or adjust the tests.
 
-Make sure 
-
 Bear in mind that MQTT user/password is sent in raw text and it has nothing to do with proper TLS encryption described below.
 
 ***MQTT TLS***
 
 By default port 8883 is used for TLS-protected MQTT communication.
 
-When the MQTT broker is set up as described above, just follow [this tutorial](http://www.steves-internet-guide.com/mosquitto-tls/) to set up the mqtt broker and all certificates. Use `tls_version tlsv1.2`. There is a default certificate provided in the MQTT test suite. 
+When the MQTT broker is set up as described above, just follow [this tutorial](http://www.steves-internet-guide.com/mosquitto-tls/) to set up the mqtt broker and all certificates. Use `tls_version tlsv1.2`.
 
 ***MQTT-SN***
 
@@ -153,7 +141,7 @@ git checkout master
 cd ..
 ```
 
-MQTT tests will run on any type of connection. See the [relevant section of netsocket tests](https://github.com/ARMmbed/mbed-os/blob/master/TESTS/netsocket/README.md#building-test-binaries) to find more information on how to establish connectivity.
+MQTT tests will run on any type of connection. See the [relevant section of netsocket tests](../netsocket/README.md#building-test-binaries) to find more information on how to establish connectivity.
 
 Now build test binaries:
 

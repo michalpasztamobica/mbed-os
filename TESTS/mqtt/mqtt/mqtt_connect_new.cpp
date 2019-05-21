@@ -15,12 +15,9 @@
  * limitations under the License.
  */
 
-#include <MQTTNetwork.h>
+#include <MQTTClientMbedOs.h>
 #include "mqtt_tests.h"
 #include "unity/unity.h"
-
-#include <MQTTClientNew.h>
-#include <MQTTmbed.h> // Countdown
 
 void MQTT_FULL_NEW()
 {
