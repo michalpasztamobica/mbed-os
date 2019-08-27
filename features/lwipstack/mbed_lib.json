@@ -156,6 +156,10 @@
         "num-netbuf": {
             "help": "Number of netbufs, each netbuf requires 64 bytes of RAM, see LWIP's opt.h for more information. Current default is 8.",
             "value": 8
+        },
+        "rawipsocket-enabled": {
+            "help": "Enable ICMP RAW",
+            "value": false
         }
     },
     "target_overrides": {
