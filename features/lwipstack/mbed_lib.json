@@ -157,8 +157,8 @@
             "help": "Number of netbufs, each netbuf requires 64 bytes of RAM, see LWIP's opt.h for more information. Current default is 8.",
             "value": 8
         },
-        "rawipsocket-enabled": {
-            "help": "Enable ICMP RAW",
+        "raw-socket-enabled": {
+            "help": "Enable lwip raw sockets, required for Mbed OS ICMPSocket",
             "value": false
         }
     },
@@ -212,8 +212,8 @@
             "default-thread-stacksize": 640,
             "memp-num-tcp-seg": 24,
             "tcp-socket-max": 10,
-            "udp-socket-max":10,
-            "socket-max":18,
+            "udp-socket-max": 10,
+            "socket-max": 18,
             "tcp-mss": 1540,
             "tcp-snd-buf": "(6 * TCP_MSS)",
             "tcp-wnd": "(TCP_MSS * 6)",
