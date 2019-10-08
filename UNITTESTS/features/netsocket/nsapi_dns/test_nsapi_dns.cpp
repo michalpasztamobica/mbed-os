@@ -427,12 +427,14 @@ TEST_F(Test_nsapi_dns, multiple_queries)
     delete[] addr;
 
     SocketAddress *addr_cache;
-    // Cache will only raturn one address.
-    EXPECT_EQ(Test_nsapi_dns::query_id, getaddrinfo((NetworkStackMock *)iface->get_stack(), "www.google.com", hints, &addr_cache));
+    EXPECT_EQ(3, getaddrinfo((NetworkStackMock *)iface->get_stack(), "www.google.com", hints, &addr_cache));
 
-    // This is a bug which will be fixed in
     EXPECT_EQ(addr_cache[0].get_ip_version(), NSAPI_IPv4);
     EXPECT_FALSE(strncmp(addr_cache[0].get_ip_address(), "216.58.207.238", sizeof("216.58.207.238")));
+    EXPECT_EQ(addr_cache[1].get_ip_version(), NSAPI_IPv4);
+    EXPECT_FALSE(strncmp(addr_cache[1].get_ip_address(), "222.173.190.239", sizeof("222.173.190.239")));
+    EXPECT_EQ(addr_cache[2].get_ip_version(), NSAPI_IPv4);
+    EXPECT_FALSE(strncmp(addr_cache[2].get_ip_address(), "1.2.3.4", sizeof("1.2.3.4")));
     delete[] addr_cache;
 }
 
@@ -494,7 +496,7 @@ TEST_F(Test_nsapi_dns, simultaneous_query_async)
     // Run again to execute response_handler
     executeEventQueueCallbacks();
 
-    EXPECT_EQ(NSAPI_ERROR_OK, Test_nsapi_dns::hostname_cb_result);
+    EXPECT_EQ(1, Test_nsapi_dns::hostname_cb_result);
     EXPECT_EQ(Test_nsapi_dns::hostname_cb_address[0].get_ip_version(), NSAPI_IPv4);
     EXPECT_FALSE(strncmp(Test_nsapi_dns::hostname_cb_address[0].get_ip_address(), "216.58.207.238", sizeof("216.58.207.238")));
 
@@ -565,11 +567,13 @@ TEST_F(Test_nsapi_dns, single_query_async_multiple)
     Test_nsapi_dns::hostname_cb_result = NSAPI_ERROR_DEVICE_ERROR;
 
     // Do not set any return values. Second call should use cache.
-    // Cache will only return one address!
-    EXPECT_EQ(0, getaddrinfo_async((NetworkStackMock *)iface->get_stack(), "www.google.com", &Test_nsapi_dns::hostbyname_cb));
-    EXPECT_EQ(NSAPI_ERROR_OK, Test_nsapi_dns::hostname_cb_result);
+
+    EXPECT_EQ(3, getaddrinfo_async((NetworkStackMock *)iface->get_stack(), "www.google.com", &Test_nsapi_dns::hostbyname_cb));
+    EXPECT_EQ(3, Test_nsapi_dns::hostname_cb_result);
     EXPECT_EQ(Test_nsapi_dns::hostname_cb_address[0].get_ip_version(), NSAPI_IPv4);
     EXPECT_FALSE(strncmp(Test_nsapi_dns::hostname_cb_address[0].get_ip_address(), "216.58.207.238", sizeof("216.58.207.238")));
+    EXPECT_FALSE(strncmp(Test_nsapi_dns::hostname_cb_address[1].get_ip_address(), "222.173.190.239", sizeof("222.173.190.239")));
+    EXPECT_FALSE(strncmp(Test_nsapi_dns::hostname_cb_address[2].get_ip_address(), "1.2.3.4", sizeof("1.2.3.4")));
 
     delete[] Test_nsapi_dns::hostname_cb_address;
 }
