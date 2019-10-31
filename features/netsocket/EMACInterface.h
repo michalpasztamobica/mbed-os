@@ -79,19 +79,15 @@ public:
     virtual const char *get_mac_address();
 
     /** @copydoc NetworkInterface::get_ip_address */
-<<<<<<< HEAD
     virtual nsapi_error_t get_ip_address(SocketAddress *address);
 
     MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
-=======
->>>>>>> Improve doxygen and unittest coverage for API
     virtual const char *get_ip_address();
 
     /** @copydoc NetworkInterface::get_ipv6_link_local_address */
     virtual nsapi_error_t get_ipv6_link_local_address(SocketAddress *address);
 
     /** @copydoc NetworkInterface::get_netmask */
-<<<<<<< HEAD
     virtual nsapi_error_t get_netmask(SocketAddress *address);
 
     MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
@@ -100,12 +96,8 @@ public:
     /** @copydoc NetworkInterface::get_gateway */
     virtual nsapi_error_t get_gateway(SocketAddress *address);
 
-    MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
-=======
-    virtual const char *get_netmask();
-
     /** @copydoc NetworkInterface::get_gateway */
->>>>>>> Improve doxygen and unittest coverage for API
+    MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
     virtual const char *get_gateway();
 
     /** @copydoc NetworkInterface::get_interface_name */
