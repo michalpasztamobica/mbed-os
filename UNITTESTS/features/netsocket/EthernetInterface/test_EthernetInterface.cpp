@@ -168,6 +168,7 @@ TEST_F(TestEthernetInterface, set_network)
     SocketAddress ipAddress("127.0.0.1");
     SocketAddress netmask("255.255.0.0");
     SocketAddress gateway("127.0.0.2");
+    char macAddress[NSAPI_MAC_SIZE];
 
     SocketAddress ipAddressArg;
     SocketAddress netmaskArg;
@@ -205,7 +206,12 @@ TEST_F(TestEthernetInterface, set_network)
     EXPECT_EQ(gateway, gatewayArg);
 
     // Testing the getters makes sense now.
-    EXPECT_CALL(*netStackIface, get_ip_address(_))
+    EXPECT_CALL(*netStackIface, get_mac_address(_, _))
+    .Times(1)
+    .WillOnce(DoAll(SetArrayArgument<0>(macAddress, macAddress+NSAPI_MAC_SIZE), Return(macAddress)));
+    EXPECT_EQ(std::string(macAddress), std::string(iface->get_mac_address()));
+
+    EXPECT_CALL(*netStackIface, get_ip_address(_, _))
     .Times(1)
     .WillOnce(DoAll(SetArgPointee<0>(ipAddress), Return(NSAPI_ERROR_OK)));
     EXPECT_EQ(NSAPI_ERROR_OK, iface->get_ip_address(&ipAddressArg));

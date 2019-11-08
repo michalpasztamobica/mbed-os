@@ -53,17 +53,7 @@ public:
     EMACInterface(EMAC &emac = EMAC::get_default_instance(),
                   OnboardNetworkStack &stack = OnboardNetworkStack::get_default_instance());
 
-    /** Set a static IP address
-     *
-     *  Configures this network interface to use a static IP address.
-     *  Implicitly disables DHCP, which can be enabled in set_dhcp.
-     *  Requires that the network is disconnected.
-     *
-     *  @param ip_address  Null-terminated representation of the local IP address
-     *  @param netmask     Null-terminated representation of the local network mask
-     *  @param gateway     Null-terminated representation of the local gateway
-     *  @return            0 on success, negative error code on failure
-     */
+    /** @copydoc NetworkInterface::set_network */
     virtual nsapi_error_t set_network(const SocketAddress &ip_address, const SocketAddress &netmask, const SocketAddress &gateway);
 
     MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
@@ -89,15 +79,19 @@ public:
     virtual const char *get_mac_address();
 
     /** @copydoc NetworkInterface::get_ip_address */
+<<<<<<< HEAD
     virtual nsapi_error_t get_ip_address(SocketAddress *address);
 
     MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
+=======
+>>>>>>> Improve doxygen and unittest coverage for API
     virtual const char *get_ip_address();
 
     /** @copydoc NetworkInterface::get_ipv6_link_local_address */
     virtual nsapi_error_t get_ipv6_link_local_address(SocketAddress *address);
 
     /** @copydoc NetworkInterface::get_netmask */
+<<<<<<< HEAD
     virtual nsapi_error_t get_netmask(SocketAddress *address);
 
     MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
@@ -107,6 +101,11 @@ public:
     virtual nsapi_error_t get_gateway(SocketAddress *address);
 
     MBED_DEPRECATED_SINCE("mbed-os-5.15", "String-based APIs are deprecated")
+=======
+    virtual const char *get_netmask();
+
+    /** @copydoc NetworkInterface::get_gateway */
+>>>>>>> Improve doxygen and unittest coverage for API
     virtual const char *get_gateway();
 
     /** @copydoc NetworkInterface::get_interface_name */
