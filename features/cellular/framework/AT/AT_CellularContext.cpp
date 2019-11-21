@@ -219,19 +219,9 @@ nsapi_error_t AT_CellularContext::get_netmask(SocketAddress *address)
     return NSAPI_ERROR_UNSUPPORTED;
 }
 
-const char *AT_CellularContext::get_netmask()
-{
-    return NULL;
-}
-
 nsapi_error_t AT_CellularContext::get_gateway(SocketAddress *address)
 {
     return NSAPI_ERROR_UNSUPPORTED;
-}
-
-const char *AT_CellularContext::get_gateway()
-{
-    return NULL;
 }
 
 nsapi_error_t AT_CellularContext::get_ip_address(SocketAddress *address)
@@ -251,21 +241,6 @@ nsapi_error_t AT_CellularContext::get_ip_address(SocketAddress *address)
         return NSAPI_ERROR_OK;
     }
     return NSAPI_ERROR_NO_CONNECTION;
-#endif
-}
-
-const char *AT_CellularContext::get_ip_address()
-{
-#if NSAPI_PPP_AVAILABLE
-    return nsapi_ppp_get_ip_addr(_at.get_file_handle());
-#else
-    if (!_stack) {
-        _stack = get_stack();
-    }
-    if (_stack) {
-        return _stack->get_ip_address();
-    }
-    return NULL;
 #endif
 }
 

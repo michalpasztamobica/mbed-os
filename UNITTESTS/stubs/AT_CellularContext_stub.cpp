@@ -116,11 +116,6 @@ nsapi_error_t AT_CellularContext::get_ip_address(SocketAddress *address)
     return NSAPI_ERROR_UNSUPPORTED;
 }
 
-const char *AT_CellularContext::get_ip_address()
-{
-    return NULL;
-}
-
 void AT_CellularContext::attach(Callback<void(nsapi_event_t, intptr_t)> status_cb)
 {
 }
@@ -154,19 +149,9 @@ nsapi_error_t AT_CellularContext::get_netmask(SocketAddress *address)
     return NSAPI_ERROR_UNSUPPORTED;
 }
 
-const char *AT_CellularContext::get_netmask()
-{
-    return NULL;
-}
-
 nsapi_error_t AT_CellularContext::get_gateway(SocketAddress *address)
 {
     return NSAPI_ERROR_UNSUPPORTED;
-}
-
-const char *AT_CellularContext::get_gateway()
-{
-    return NULL;
 }
 
 AT_CellularBase::CellularProperty AT_CellularContext::pdp_type_t_to_cellular_property(pdp_type_t pdp_type)
