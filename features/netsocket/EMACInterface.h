@@ -59,9 +59,9 @@ public:
      *  Implicitly disables DHCP, which can be enabled in set_dhcp.
      *  Requires that the network is disconnected.
      *
-     *  @param ip_address  Null-terminated representation of the local IP address
-     *  @param netmask     Null-terminated representation of the local network mask
-     *  @param gateway     Null-terminated representation of the local gateway
+     *  @param ip_address  SocketAddress representation of the local IP address
+     *  @param netmask     SocketAddress representation of the local network mask
+     *  @param gateway     SocketAddress representation of the local gateway
      *  @return            0 on success, negative error code on failure
      */
     virtual nsapi_error_t set_network(const SocketAddress &ip_address, const SocketAddress &netmask, const SocketAddress &gateway);
@@ -95,9 +95,6 @@ public:
     virtual nsapi_error_t get_netmask(SocketAddress *address);
 
     /** @copydoc NetworkInterface::get_gateway */
-    virtual nsapi_error_t get_gateway(SocketAddress *address);
-
-    /** @copydoc NetworkInterface::get_interface_name */
     virtual nsapi_error_t get_gateway(SocketAddress *address);
 
     /** Get the network interface name

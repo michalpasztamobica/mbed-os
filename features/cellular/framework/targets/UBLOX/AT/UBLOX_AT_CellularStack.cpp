@@ -403,7 +403,7 @@ void UBLOX_AT_CellularStack::clear_socket(CellularSocket *socket)
     }
 }
 
-const char *UBLOX_AT_CellularStack::get_ip_address()
+nsapi_error_t UBLOX_AT_CellularStack::get_ip_address(SocketAddress *address)
 {
     _at.lock();
     _at.cmd_start_stop("+UPSND", "=", "%d%d", PROFILE, 0);
@@ -417,7 +417,7 @@ const char *UBLOX_AT_CellularStack::get_ip_address()
             _ip[0] = '\0';
             _at.unlock();
             // no IPV4 address, return
-            return NULL;
+            return NSAPI_ERROR_NO_ADDRESS;
         }
 
         // in case stack type is not IPV4 only, try to look also for IPV6 address
@@ -430,8 +430,11 @@ const char *UBLOX_AT_CellularStack::get_ip_address()
 
     // we have at least IPV4 address
     convert_ipv6(_ip);
+    if (NSAPI_ERROR_OK != address->set_ip_address(_ip)) {
+        return NSAPI_ERROR_NO_ADDRESS;
+    }
 
-    return _ip;
+    return NSAPI_ERROR_OK;
 }
 
 nsapi_error_t UBLOX_AT_CellularStack::gethostbyname(const char *host, SocketAddress *address, nsapi_version_t version, const char *interface_name)
