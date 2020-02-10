@@ -117,6 +117,7 @@ set(unittest-includes-base
   "${PROJECT_SOURCE_DIR}/../cmsis"
   "${PROJECT_SOURCE_DIR}/../features/frameworks"
   "${PROJECT_SOURCE_DIR}/../features/frameworks/mbed-trace"
+  "${PROJECT_SOURCE_DIR}/../features/frameworks/mbed-trace/mbed-trace"
   "${PROJECT_SOURCE_DIR}/../features/frameworks/nanostack-libservice"
   "${PROJECT_SOURCE_DIR}/../features/frameworks/nanostack-libservice/mbed-client-libservice"
   "${PROJECT_SOURCE_DIR}/../features/filesystem/fat"
@@ -138,6 +139,7 @@ set(unittest-includes-base
   "${PROJECT_SOURCE_DIR}/../features/mbedtls"
   "${PROJECT_SOURCE_DIR}/../features/mbedtls/inc"
   "${PROJECT_SOURCE_DIR}/../features/mbedtls/mbed-crypto/inc"
+  "${PROJECT_SOURCE_DIR}/../features/mbedtls/mbed-crypto/inc/mbedtls"
 )
 
 # Create a list for test suites.
